@@ -13,6 +13,7 @@ workflows:
     # For more details on extending your workflow, see the configuration docs: https://circleci.com/docs/2.0/configuration-reference/#workflows 
     jobs:
       - build-and-test
+      - build-and-test-e2e
 
 
 jobs:
@@ -39,3 +40,42 @@ jobs:
           name: Run tests
           # This assumes pytest is installed via the install-package step above
           command: make tests-unit
+          
+  build-and-test-e2e:  # This is the name of the job, feel free to change it to better match what you're trying to do!
+    # These next lines defines a Docker executors: https://circleci.com/docs/2.0/executor-types/
+    # You can specify an image from Dockerhub or use one of the convenience images from CircleCI's Developer Hub
+    # A list of available CircleCI Docker convenience images are available here: https://circleci.com/developer/images/image/cimg/python
+    # The executor is the environment in which the steps below will be executed - below will use a python 3.9 container
+    # Change the version below to your required version of python
+    docker:
+      - image: echowuhao/pywright
+    # Checkout the code as the first step. This is a dedicated CircleCI step.
+    # The python orb's install-packages step will install the dependencies from a Pipfile via Pipenv by default.
+    # Here we're making sure we use just use the system-wide pip. By default it uses the project root's requirements.txt.
+    # Then run your tests!
+    # CircleCI will report the results back to your VCS provider.
+    steps:
+      - checkout
+      - run:
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests
+          # This assumes pytest is installed via the install-package step above
+          command: make tests-unit
+      - run:
+          name: Install PW Deps
+          # This assumes pytest is installed via the install-package step above
+          command: make pw-dependencies
+      - run: 
+          command: make run
+          background: true
+      - run:
+          name: Sleep
+          # This assumes pytest is installed via the install-package step above
+          command: sleep 10
+      - run:
+          name: Runtestse2e
+          command: make tests-e2e
+      - store_artifacts:
+          path: e2e-report.html
+          name: UnitTestReport
